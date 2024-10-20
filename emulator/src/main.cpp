@@ -1,11 +1,12 @@
 #include <iostream>
-#include <map>
+#include <fstream>
+#include <array>
 #include <cstdint>
 
 using byte = uint8_t;
 
 /*
-movi    0111 1111
+movi    0iii iiii
 add     1000 rrrr
 sub     1001 rrrr
 mul     1010 rrrr
@@ -14,40 +15,51 @@ in      1100 00rr
 out     1100 01rr
 */
 
-byte ucDataBlock[] = {
-	// Offset 0x00000000 to 0x0000000B
-	0xC4, 0xC5, 0xC6, 0xC7, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7
-};
-
 int main(int argc, char *argv[])
 {
-    byte a, b, c, d;
-    std::map<byte, byte*> registers = {
-        {0, &a},
-        {1, &b},
-        {2, &c},
-        {3, &d}
-    };
-    for(auto &[k, v] : registers)
-        *v = k + 10;
-    
-    for(auto &command : ucDataBlock)
+    std::array<byte, 4> registers;//a b c d
+    for(int i = 0; i < registers.size(); i++)
+        registers[i] = i;
+
+    std::ifstream input(std::string(argv[1]), std::ios_base::binary);
+    for(byte command; input.get(reinterpret_cast<char&>(command));)
     {
         if(command < 0x80)
-            d = command;
+            registers.back() = command;
         else if(command >= 0xC0)
-        {
-            printf("reg №%d: ", command & 3);
-            
-            byte &reg = *registers[command & 3];
+        {            
+            byte &reg = registers[command & 3];//last 2 bits
             if(command >= 0xC4)
-                printf("-%d-\n", reg);//out
+                std::cout << static_cast<unsigned>(reg);//out
             else if(command < 0xC4)
             {
-                byte in;
-                std::cin >> *(unsigned*)(&in);
-                reg = in;
-                // std::cin >> *(unsigned*)(&reg);// не работает
+                unsigned in;
+                std::cin >> in;
+                reg = in & 0xFF;
+            }
+        }
+        else
+        {
+            byte &dst = registers[(command >> 2) & 3];//pre last 2 bits
+            byte &src = registers[command & 3];//last 2 bits
+
+            switch((command >> 4) & 3) 
+            {
+            case 0://add
+                dst += src;
+                break;
+            case 1://sub
+                dst -= src;
+                break;
+            case 2://mul
+                dst *= src;
+                break;
+            case 3://div
+                dst /= src;
+                break;
+            default:
+                std::terminate();
+                break;
             }
         }
     }   

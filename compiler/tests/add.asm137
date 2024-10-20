@@ -1,0 +1,11 @@
+#       (x / 3 + 15) * y - 2
+in  a
+movi 3
+div a d
+movi 5
+add a d
+in b
+mul a b
+movi 2
+sub a d
+out a
